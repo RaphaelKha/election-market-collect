@@ -16,7 +16,8 @@ log = setup_logging()
 def backfill_ranges():
     today = dt.datetime.now(dt.timezone.utc).date()
     # 28, not 29: Yahoo's 30-day limit is checked against local midnight, which TASE (UTC+3) overshoots at 29.
-    return [(today - dt.timedelta(days=lo), today - dt.timedelta(days=lo - 7)) for lo in (28, 21, 14)]
+    # The 9-day window overlaps period=7d, whose start is "now - 7d", not midnight.
+    return [(today - dt.timedelta(days=lo), today - dt.timedelta(days=lo - 7)) for lo in (28, 21, 14, 9)]
 
 
 def main():
