@@ -1,0 +1,63 @@
+# Tickers collected from yfinance, by group.
+# prepost: true -> intraday includes US pre/after-market. Needed for us/adr: Israeli exit polls land at
+# 20:00 UTC on 2026-10-27 = 16:00 New York (EDT), i.e. exactly at the US close.
+
+election_date: "2026-10-27"
+collect_until: "2026-10-31"   # cron runs are no-ops after this date (UTC)
+
+groups:
+  fx:
+    tickers: [ILS=X, EURILS=X, DX-Y.NYB]   # USD/ILS, EUR/ILS, dollar index
+  us:
+    prepost: true
+    tickers: [^GSPC, ^IXIC, ^VIX]
+  tase:
+    tickers: [TA35.TA, ^TA125.TA, LUMI.TA, POLI.TA, DSCT.TA, MZTF.TA, TEVA.TA, ESLT.TA, NICE.TA, ICL.TA]
+  adr:
+    prepost: true
+    tickers: [TEVA, ESLT, CHKP, NICE, ICL, EIS]   # EIS = iShares MSCI Israel ETF
+  bonds:
+    # TASE government bond indices (price indices, not yields). Yahoo serves their intraday (~7d)
+    # but no daily history: only the 1m collection is useful for them.
+    tickers:
+      - 602.TA   # Tel-Gov (all government bonds)
+      - 702.TA   # Tel-Gov Shekel 0-2y
+      - 703.TA   # Tel-Gov Shekel 2-5y
+      - 729.TA   # Tel-Gov Shekel 5-10y
+      - 605.TA   # Tel-Gov CPI-linked
+  macro:
+    tickers: [BTC-USD, GC=F, CL=F]   # bitcoin, gold, WTI crude
+  vol:
+    # 598.TA = VTA35, TASE's TA-35 volatility index (intraday only on Yahoo, like the bonds)
+    tickers: [598.TA, ^VIX9D, ^GVZ, ^OVX]
+
+# Option chains snapshotted hourly (point-in-time: cannot be re-downloaded later). EIS has none on Yahoo.
+options:
+  tickers: [TEVA, CHKP, ESLT, NICE, ICL]
+  max_expiry: "2026-12-31"
+
+# Raw wikitext saved at every new revision (polls table; exit polls + results land on the election page).
+wikipedia_pages:
+  - Opinion polling for the 2026 Israeli legislative election
+  - Leadership opinion polling for the 2026 Israeli legislative election
+  - 2026 Israeli legislative election
+
+polymarket:
+  event_slugs:
+    - who-will-be-the-next-prime-minister-of-israel-after-the-next-election
+    - israeli-legislative-election-winner
+    - netanyahu-out-before-2027
+    - israel-election-likud-of-seats
+    - israel-election-which-bloc-wins-more-seats
+    - israel-election-any-coalition-wins-a-majority
+    - israeli-election-results-in-a-hung-parliament
+    - which-parties-will-be-in-the-next-israeli-government
+    - israeli-legislative-election-2nd-place
+    - israeli-legislative-election-3rd-place
+    - israel-election-together-of-seats
+    - israel-election-yashar-of-seats
+
+# Logged as warnings at ticker verification time.
+todo:
+  - "bonds: no Israeli government bond yield (e.g. 10Y) on yfinance; daily history of TASE Tel-Gov indices missing on Yahoo. Source to find: Bank of Israel / TASE data."
+  - "bonds: no Israel bond ETF on yfinance (none listed in the US)."

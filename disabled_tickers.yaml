@@ -1,0 +1,3 @@
+# Written by verify_tickers(). Tickers listed here are skipped by every collector.
+# Delete this file (or run collect_intraday.py --verify) to re-check.
+{}
