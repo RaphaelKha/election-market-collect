@@ -5,3 +5,4 @@ __pycache__/
 *.parquet.tmp
 .collect.lock
 .polymarket.lock
+parity_gaps.parquet

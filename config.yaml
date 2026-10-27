@@ -61,3 +61,15 @@ polymarket:
 todo:
   - "bonds: no Israeli government bond yield (e.g. 10Y) on yfinance; daily history of TASE Tel-Gov indices missing on Yahoo. Source to find: Bank of Israel / TASE data."
   - "bonds: no Israel bond ETF on yfinance (none listed in the US)."
+
+# parity_track.py: TASE vs US gap on the common window. Runs daily, NOT limited by collect_until.
+parity:
+  fx: ILS=X
+  thresholds_bps: [20, 40, 60]   # round-trip costs tested
+  min_run_min: 3                 # an episode must last this long to leave time to execute both legs
+  bias_window_min: 300           # trailing window (common minutes) for the usual bias
+  pairs:                         # US ticker -> TASE ticker, ratio = TASE shares per US share
+    TEVA: {tase: TEVA.TA, ratio: 1}   # ordinary shares on both since 2026-09-14 (ADS program terminated, 1:1)
+    NICE: {tase: NICE.TA, ratio: 1}   # ADS = 1 ordinary share (20-F); to re-check on the current 20-F
+    ESLT: {tase: ESLT.TA, ratio: 1}   # ordinary shares on both: to verify
+    ICL:  {tase: ICL.TA,  ratio: 1}   # ordinary shares on both: to verify
