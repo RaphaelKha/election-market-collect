@@ -1,148 +1,146 @@
-# Marchés et élections israéliennes (Knesset, 27 octobre 2026)
+**English** · [עברית](README.he.md)
 
-Ce dépôt contient les programmes qui me servent à **observer les marchés financiers pendant les élections législatives israéliennes du 27 octobre 2026**. L'objectif est double :
+# Markets around the 2026 Israeli election
 
-1. **Mesurer la réaction des marchés à l'élection.** Je veux voir comment le shekel, la bourse de Tel-Aviv (TASE), les sociétés israéliennes cotées à New York et les marchés de prédiction réagissent à l'arrivée des résultats.
-2. **Suivre l'écart de prix entre Tel-Aviv et New York.** Plusieurs sociétés israéliennes sont cotées sur les deux places. En théorie, une fois converti en dollars, leur prix devrait être le même. Je mesure minute par minute de combien il s'en écarte et combien de temps dure l'écart, pour savoir si un arbitrage serait possible une fois les frais payés.
+This repository holds the code I use to **watch financial markets around the election for the 26th Knesset on 27 October 2026**. The study has two parts:
 
-Il s'agit d'un **projet d'observation et de recherche personnelle**. Aucun ordre de bourse n'est passé par ce code, et rien ici ne constitue un conseil en investissement.
+1. **How markets react to the election.** I track the shekel, the Tel Aviv Stock Exchange (TASE), Israeli companies listed in New York, and prediction markets as the results come in.
+2. **The Tel Aviv / New York price gap.** Several Israeli companies are listed in both places. Converted into dollars, the two prices should be the same. I measure, minute by minute, how far apart they drift and how long the gap lasts, to see whether it would leave room for arbitrage once trading costs are paid.
 
-> Dernière mise à jour du README : 27/10/2026.
+This is a **personal observation and research project**. The code places no orders, and nothing here is investment advice.
 
----
-
-## Pourquoi cette période
-
-- Le jour du scrutin, le **27/10/2026**, la bourse de Tel-Aviv est **fermée** (jour férié). Les marchés américains, eux, sont ouverts.
-- Les **sondages de sortie des urnes** tombent à 22:00, heure d'Israël, soit **20:00 UTC**. C'est **exactement l'heure de clôture de Wall Street** (16:00 à New York). La première réaction se lit donc sur les titres israéliens cotés aux États-Unis, dans les échanges après la clôture, avant que Tel-Aviv rouvre.
-- Une bonne partie de ces données n'est **plus téléchargeable après coup**. Yahoo ne garde les cours à la minute que quelques semaines et ne conserve aucun historique des options. Il faut donc les enregistrer au fil de l'eau.
+> This README was published before the exit polls (27 Oct 2026, 20:00 UTC), on purpose: it states the questions before the answers are known.
 
 ---
 
-## Volet 1 : collecte autour de l'élection (26 au 31/10/2026)
+## Why this window
 
-| Catégorie | Ce qui est suivi | Fréquence |
+- On election day, **27 Oct 2026**, the **TASE is closed** (public holiday). US markets are open.
+- The **exit polls** are released when voting ends, at 22:00 Israel time, i.e. **20:00 UTC**. That is **exactly the New York close** (16:00 ET). The first market reaction should therefore show up in the US after-hours trading of Israeli stocks, before Tel Aviv reopens.
+- Much of this data **cannot be downloaded later**. Yahoo keeps 1-minute bars for only a few weeks and keeps no history of option chains, so they have to be recorded as they happen.
+
+---
+
+## Part 1: data collected around the election (26–31 Oct 2026)
+
+| Category | What is tracked | Frequency |
 |---|---|---|
-| Change | USD/ILS, EUR/ILS, indice dollar (DXY) | barres de 1 minute, toutes les heures |
-| Bourse de Tel-Aviv | indices TA-35 et TA-125 ; banques Leumi, Hapoalim, Discount, Mizrahi-Tefahot ; Teva, Elbit Systems, NICE, ICL | 1 minute |
-| Titres israéliens à New York | TEVA, ESLT, CHKP, NICE, ICL, et l'ETF EIS (iShares MSCI Israel), y compris avant et après la séance | 1 minute |
-| Obligations d'État israéliennes | indices Tel-Gov (ensemble, 0-2 ans, 2-5 ans, 5-10 ans, indexées sur l'inflation) | 1 minute |
-| Volatilité | VTA35 (volatilité du TA-35), VIX9D, GVZ (or), OVX (pétrole) | 1 minute |
-| Repères | S&P 500, Nasdaq, VIX, bitcoin, or, pétrole WTI | 1 minute |
-| Options | chaînes complètes (calls et puts, échéances jusqu'au 31/12/2026) sur TEVA, CHKP, ESLT, NICE, ICL | une photo par heure |
-| Polymarket | 12 marchés de prédiction sur l'élection (futur Premier ministre, parti en tête, nombre de sièges, blocs, coalition…), soit 189 questions | prix à la minute |
-| Sondages | pages Wikipedia des sondages et de l'élection, avec une copie à chaque nouvelle révision | toutes les heures |
+| FX | USD/ILS, EUR/ILS, US dollar index (DXY) | 1-minute bars, fetched hourly |
+| Tel Aviv | TA-35 and TA-125 indices; Leumi, Hapoalim, Discount and Mizrahi-Tefahot banks; Teva, Elbit Systems, NICE, ICL | 1 minute |
+| Israeli stocks in New York | TEVA, ESLT, CHKP, NICE, ICL, plus the EIS ETF (iShares MSCI Israel), including pre- and after-market | 1 minute |
+| Israeli government bonds | Tel-Gov indices (all, 0–2y, 2–5y, 5–10y, CPI-linked) | 1 minute |
+| Volatility | VTA35 (TA-35 volatility), VIX9D, GVZ (gold), OVX (oil) | 1 minute |
+| Benchmarks | S&P 500, Nasdaq, VIX, bitcoin, gold, WTI crude | 1 minute |
+| Options | full chains (calls and puts, expiries up to 31 Dec 2026) on TEVA, CHKP, ESLT, NICE, ICL | hourly snapshot |
+| Polymarket | 12 election events (next prime minister, largest party, seat counts, blocs, coalition…), 189 markets in total | 1-minute prices |
+| Polls | Wikipedia polling and election pages, saved at every new revision | hourly |
 
-**Calendrier automatique (heures UTC)**
-- Toutes les heures : cours à la minute (:05), options (:20), Polymarket (:35), sondages (:50).
-- Soir de l'élection (27/10) : une photo des options à 19:50, juste avant les sondages de sortie, puis un passage complet à 20:15.
-- 30/10 à 22:00 : photo finale de l'historique plus long (barres de 5 minutes, d'une heure et quotidiennes).
-- Après le 31/10, ces tâches s'arrêtent d'elles-mêmes.
+**Schedule (UTC)**
+- Every hour: 1-minute bars (:05), options (:20), Polymarket (:35), polls (:50).
+- Election night (27 Oct): an options snapshot at 19:50, just before the exit polls, then a full pass at 20:15.
+- 30 Oct, 22:00: a final snapshot of longer histories (5-minute, hourly and daily bars).
+- These jobs stop on their own after 31 Oct.
 
-`collect_history.py` récupère aussi l'historique quotidien autour des **élections précédentes**, pour comparer les réactions d'un scrutin à l'autre.
+`collect_history.py` also downloads daily prices around **past Knesset elections**, so that this reaction can be compared with earlier ones.
 
 ---
 
-## Volet 2 : écart de prix Tel-Aviv / New York (`parity_track.py`)
+## Part 2: Tel Aviv / New York price gap (`parity_track.py`)
 
-### Le principe
+### Method
 
-Une action Teva achetée à Tel-Aviv et une action Teva achetée à New York sont le même titre. Converti en dollars, leur prix devrait donc être identique. Pour chaque minute où **les deux places ont réellement échangé le titre** :
+A Teva share bought in Tel Aviv and a Teva share bought in New York are the same security, so their dollar prices should match. For every minute in which **the stock actually traded in both places**:
 
 ```
-prix théorique en $ = (prix à Tel-Aviv en agorot / 100) / taux USD/ILS × ratio
-écart (en points de base) = (prix à New York / prix théorique − 1) × 10 000
+TASE price in USD = (TASE price in agorot / 100) / USDILS × ratio
+gap (basis points) = (New York price / TASE price in USD − 1) × 10,000
 ```
 
-Un point de base (bp) vaut 0,01 %.
+One basis point (bp) is 0.01%.
 
-Un petit écart permanent est normal (frais, fiscalité, sens des flux). Ce qui compte, c'est **la déviation par rapport à l'écart habituel** : l'écart de la minute, moins sa médiane sur les 300 minutes communes précédentes.
+A small, stable gap is normal (fees, taxes, the usual direction of flows). What matters is the **deviation from the usual gap**: the current gap minus its median over the previous 300 common minutes.
 
-Un **épisode** est une suite de minutes consécutives où cette déviation dépasse un seuil, toujours du même côté. Je teste trois seuils (20, 40 et 60 bp), qui représentent différents niveaux de frais aller-retour. Seuls les épisodes d'au moins **3 minutes** sont retenus, car ce sont les seuls qui laissent le temps de passer les deux ordres.
+An **episode** is a run of consecutive minutes in which that deviation stays beyond a threshold, on the same side. Three thresholds are tested, 20, 40 and 60 bp, standing for different round-trip trading costs. Only episodes lasting **at least 3 minutes** count, since shorter ones leave no time to trade both legs.
 
-### Les paires suivies
+### Pairs
 
-| New York | Tel-Aviv | Ratio |
+| New York | Tel Aviv | Ratio |
 |---|---|---|
-| TEVA | TEVA.TA | 1 : 1 (actions ordinaires sur les deux places depuis le 14/09/2026) |
-| NICE | NICE.TA | 1 : 1 (à revérifier sur le dernier rapport annuel 20-F) |
-| ESLT | ESLT.TA | 1 : 1 (à vérifier) |
-| ICL | ICL.TA | 1 : 1 (à vérifier) |
+| TEVA | TEVA.TA | 1 : 1 (ordinary shares on both exchanges since 14 Sep 2026) |
+| NICE | NICE.TA | 1 : 1 (to re-check against the latest 20-F) |
+| ESLT | ESLT.TA | 1 : 1 (to be verified) |
+| ICL | ICL.TA | 1 : 1 (to be verified) |
 
-Check Point (CHKP) n'est pas coté à Tel-Aviv, il est donc exclu de ce volet.
+Check Point (CHKP) is not listed in Tel Aviv, so it is left out of this part.
 
-### La fenêtre commune
+### Common trading window
 
-Les deux bourses ne sont ouvertes en même temps que peu de temps chaque jour :
-- environ **1 heure** (13:30–14:30 UTC) jusqu'au 23/10 ;
-- environ **2 heures** (13:30–15:30 UTC) depuis le passage à l'heure d'hiver en Israël, le 25/10 ;
-- de nouveau environ 1 heure à partir du 1er/11, quand les États-Unis passeront à l'heure d'hiver.
+The two exchanges are open at the same time for only a short period each day:
+- about **1 hour** (13:30–14:30 UTC) until 23 Oct;
+- about **2 hours** (13:30–15:30 UTC) since Israel moved to winter time on 25 Oct;
+- about 1 hour again from 1 Nov, when the US moves to winter time.
 
-Le vendredi, la séance de Tel-Aviv se termine avant l'ouverture de New York, donc il n'y a pas de fenêtre commune.
+On Fridays the Tel Aviv session ends before New York opens, so there is no common window.
 
-### Premiers résultats (13 séances communes, du 5 au 26/10/2026)
+Tracking started on 5 Oct 2026 and runs **every weekday at 21:30 UTC**, after the US close, **beyond 31 Oct**.
 
-| Paire | Minutes communes | Écart habituel (médiane) | Déviation typique haute (p95) | Minutes au-delà de 40 bp | Épisodes ≥ 3 min au-delà de 40 bp |
-|---|---|---|---|---|---|
-| TEVA | 652 | −5,3 bp | 17,0 bp | 0,2 % | 0 |
-| ESLT | 359 | −12,8 bp | 23,3 bp | 2,5 % | 0 |
-| NICE | 440 | −10,7 bp | 30,3 bp | 2,7 % | 0 |
-| ICL | 467 | −15,0 bp | 27,3 bp | 0,9 % | 1 |
+### Limitations
 
-Lecture : l'écart est négatif pour les quatre titres, c'est-à-dire que le titre est un peu moins cher à New York qu'à Tel-Aviv. Au-delà de 40 bp de frais, un écart qui dure au moins 3 minutes ne s'est produit qu'une seule fois en 13 séances. **À ce stade, l'arbitrage ne paraît pas exploitable**, mais l'échantillon est court, et la période de l'élection est justement celle où l'écart a le plus de chances de s'ouvrir.
-
-Le suivi continue **chaque jour de semaine à 21:30 UTC**, après la clôture américaine, et **au-delà du 31/10**. Les résultats vont dans `data/parity/daily.csv` (une ligne par séance et par paire) et dans `data/parity/gaps/<paire>.parquet` (le détail minute par minute).
-
-### Limites
-
-- Les écarts sont calculés sur le **dernier prix échangé** de chaque minute, pas sur les meilleures offres d'achat et de vente. Une partie des écarts d'une minute vient simplement du rebond entre acheteurs et vendeurs. Les chiffres ci-dessus sont donc une **borne haute**.
-- Le taux de change utilisé est celui de Yahoo (USD/ILS), qui n'est pas forcément un taux exécutable.
-- Plusieurs ratios restent à confirmer (voir le tableau des paires).
-- Les données Yahoo Finance ne sont pas officielles et peuvent avoir des trous.
+- Gaps are computed from the **last traded price** of each minute, not from bid and ask quotes. Some one-minute gaps are just trades bouncing between the bid and the ask, so the counts are an **upper bound**.
+- The exchange rate is Yahoo's USD/ILS quote, which is not necessarily a tradable rate.
+- Several ratios still need to be confirmed (see the pairs table).
+- Yahoo Finance data is unofficial and can have holes.
 
 ---
 
-## Organisation du dépôt
+## Questions this study asks
 
-| Fichier | Rôle |
+1. How did the shekel, the TASE, Israeli stocks in New York and Israeli government bonds react around 20:00 UTC on 27 Oct?
+2. Who priced the result in first: Polymarket, the shekel, or Israeli stocks in New York?
+3. How did the implied volatility of options on Israeli stocks change before and after the vote?
+4. Does the Tel Aviv / New York price gap widen around the election, and does it ever stay wide enough, for long enough, to cover trading costs?
+5. How does this reaction compare with previous Knesset elections?
+
+---
+
+## What will be published, and when
+
+- **Now:** the method and the code (this repository).
+- **Later, once collection is over:** the collected data and the analysis that answers the questions above.
+
+The data (`data/`) and logs (`logs/`) are not in the repository for now. They stay on the collection server.
+
+---
+
+## Repository layout
+
+| File | Purpose |
 |---|---|
-| `config.yaml` | liste des titres, marchés Polymarket, pages Wikipedia, réglages de l'écart de prix |
-| `collect_intraday.py` | cours à la minute (Yahoo garde environ 7 jours) |
-| `collect_options.py` | photos horaires des chaînes d'options |
-| `collect_polymarket.py` | historiques de prix Polymarket (API publique, sans clé) |
-| `collect_polls.py` | copies des pages Wikipedia de sondages et de l'élection |
-| `collect_snapshots.py` | historiques plus longs (5 minutes, 1 heure, quotidien) |
-| `collect_history.py` | cours quotidiens autour des élections passées |
-| `parity_track.py` | suivi quotidien de l'écart Tel-Aviv / New York |
-| `parity_check.py` | première version, ponctuelle, de l'analyse d'écart |
-| `status.py` | bilan de santé : dernier point reçu, jours manquants, derniers lancements |
-| `common.py` | fonctions partagées (configuration, journaux, téléchargements avec relance, fusion sans doublons) |
-
-Les **données** (`data/`) et les **journaux** (`logs/`) ne sont pas dans le dépôt. Elles restent sur le serveur de collecte et seront archivées à part.
+| `config.yaml` | tickers, Polymarket events, Wikipedia pages, price-gap settings |
+| `collect_intraday.py` | 1-minute bars (Yahoo keeps about 7 days) |
+| `collect_options.py` | hourly option-chain snapshots |
+| `collect_polymarket.py` | Polymarket price histories (public API, no key) |
+| `collect_polls.py` | copies of the Wikipedia polling and election pages |
+| `collect_snapshots.py` | longer histories (5-minute, hourly, daily) |
+| `collect_history.py` | daily prices around past elections |
+| `parity_track.py` | daily tracking of the Tel Aviv / New York price gap |
+| `parity_check.py` | first, one-off version of the gap analysis |
+| `status.py` | health check: latest data point, missing days, latest runs |
+| `common.py` | shared helpers (config, logging, downloads with retries, duplicate-free merges) |
 
 ---
 
-## Installation et utilisation
+## Setup
 
-Testé avec Python 3.12.
+Tested with Python 3.12.
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-.venv/bin/python status.py                    # état de la collecte
-.venv/bin/python parity_track.py              # écart Tel-Aviv / New York (télécharge les 5 derniers jours)
-.venv/bin/python parity_track.py --no-fetch   # recalcule à partir des données déjà présentes
+.venv/bin/python status.py                    # collection status
+.venv/bin/python parity_track.py              # Tel Aviv / New York gap (fetches the last 5 days)
+.venv/bin/python parity_track.py --no-fetch   # recompute from data already on disk
 ```
 
-Les tâches automatiques sont programmées avec `cron` sur un serveur Linux en heure UTC. Les collecteurs lancés avec `--cron` ne font plus rien après la date `collect_until` de `config.yaml`.
-
----
-
-## Prochaines étapes
-
-- Analyser la réaction du shekel, de Tel-Aviv et des titres cotés à New York autour de 20:00 UTC le 27/10.
-- Comparer Polymarket et les marchés : qui a anticipé le résultat en premier ?
-- Comparer la volatilité implicite des options avant et après le scrutin.
-- Trouver une source de taux d'emprunt d'État israéliens (Banque d'Israël / TASE), absents de Yahoo Finance.
-- Confirmer les ratios des paires ESLT, ICL et NICE.
+Scheduled jobs run with `cron` on a Linux server set to UTC. With `--cron`, the collectors do nothing after the `collect_until` date in `config.yaml`.
