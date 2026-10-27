@@ -1,6 +1,6 @@
 **English** · [עברית](README.he.md)
 
-# Markets around the 2026 Israeli 🇮🇱election
+# Markets around the 2026 Israeli election 🇮🇱
 
 This repository holds the code I use to **watch financial markets around the election for the 26th Knesset on 27 October 2026**. The study has two parts:
 
