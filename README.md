@@ -1,15 +1,14 @@
 **English** · [עברית](README.he.md)
 
-# Markets around the 2026 Israeli election 🇮🇱
+# Election Night Tape 🇮🇱
 
-This repository holds the code I use to **watch financial markets around the election for the 26th Knesset on 27 October 2026**. The study has two parts:
-
-1. **How markets react to the election.** I track the shekel, the Tel Aviv Stock Exchange (TASE), Israeli companies listed in New York, and prediction markets as the results come in.
-2. **The Tel Aviv / New York price gap.** Several Israeli companies are listed in both places. Converted into dollars, the two prices should be the same. I measure, minute by minute, how far apart they drift and how long the gap lasts, to see whether it would leave room for arbitrage once trading costs are paid.
+**Markets around the election for the 26th Knesset, 27 October 2026.** This repository holds the code I use to record, minute by minute, how the shekel, the Tel Aviv Stock Exchange (TASE), Israeli companies listed in New York and prediction markets moved as the results came in.
 
 This is a **personal observation and research project**. The code places no orders, and nothing here is investment advice.
 
-> This README was published before the exit polls (27 Oct 2026, 20:00 UTC), on purpose: it states the questions before the answers are known.
+> **What was published before the results, and what was not.** The questions at the end of this page were published on 27 Oct 2026 at 08:59 UTC, before the exit polls (commit `7403a52`). The measurement method below was written on 28 Oct 2026 around 09:00 UTC, **after** the exit polls. It is not pre-registered and should be read with that in mind.
+
+Companion project: [**TA–NY Parity Monitor**](https://github.com/RaphaelKha/TA-NY-parity-monitor), the minute-by-minute price gap between Tel Aviv and New York for dual-listed Israeli stocks. It started as Part 2 of this repository and now lives on its own.
 
 ---
 
@@ -21,7 +20,7 @@ This is a **personal observation and research project**. The code places no orde
 
 ---
 
-## Part 1: data collected around the election (26–31 Oct 2026)
+## Data collected (26–31 Oct 2026)
 
 | Category | What is tracked | Frequency |
 |---|---|---|
@@ -32,7 +31,7 @@ This is a **personal observation and research project**. The code places no orde
 | Volatility | VTA35 (TA-35 volatility), VIX9D, GVZ (gold), OVX (oil) | 1 minute |
 | Benchmarks | S&P 500, Nasdaq, VIX, bitcoin, gold, WTI crude | 1 minute |
 | Options | full chains (calls and puts, expiries up to 31 Dec 2026) on TEVA, CHKP, ESLT, NICE, ICL | hourly snapshot |
-| Polymarket | 12 election events (next prime minister, largest party, seat counts, blocs, coalition…), 189 markets in total | 1-minute prices |
+| Polymarket | 12 election events (next prime minister, largest party, seat counts, blocs, coalition…), 189 markets in total | 1-minute prices (**see the incident below**) |
 | Polls | Wikipedia polling and election pages, saved at every new revision | hourly |
 
 **Schedule (UTC)**
@@ -43,70 +42,75 @@ This is a **personal observation and research project**. The code places no orde
 
 `collect_history.py` also downloads daily prices around **past Knesset elections**, so that this reaction can be compared with earlier ones.
 
+### Incident: Polymarket collection interrupted from 28 Oct, 08:42 UTC
+
+- **What happened.** From 28 Oct 2026 at 08:42 UTC, Polymarket's metadata API (`gamma-api`, which maps each election event to its markets) answered every request from the collection server with **HTTP 429 "Too Many Requests"**. Without that mapping, the collector could not ask for prices, and recorded nothing.
+- **What was not affected.** Election night is complete. Up to the last successful run (28 Oct, 07:35 UTC), no market has more than about 5 minutes between two recorded prices, including around the exit polls (27 Oct, 20:00 UTC).
+- **What it was not.** Polymarket itself kept running. During the block, its website and its price-history API (`clob`) answered normally. The block was on this server's requests, not a market closure, so it says nothing about trading activity on Polymarket during that time.
+- **Cause.** The block covered the whole `gamma-api` domain for this server's IP address (HTTP 429 from CloudFront, on every endpoint, with no `Retry-After`), and it was still in place on 1 Nov. `clob` was never blocked.
+- **What was done.** Polymarket keeps full price histories, so the missing period can be fetched after the fact. The event-to-market mapping (`markets.json`: 12 events, 189 markets) was built once from another network and copied to the server; the prices themselves still come from `clob`, fetched by the server. `collect_polymarket.py` now spaces its requests 1 s apart, retries a 429 with exponential backoff, and `--recover` keeps per-market progress so that an interrupted run resumes where it stopped. It refetches 1-minute prices from 28 Oct 00:00 UTC onward.
+- **Status:** *backfill in progress since 1 Nov 2026* (first event done: 8 markets, no error). To be updated here with the date it completes and any minutes that could not be recovered.
+
 ---
 
-## Part 2: Tel Aviv / New York price gap (`parity_track.py`)
+## Method: measuring the reaction
 
-### Method
+Written on 28 Oct 2026, after the exit polls (see the note at the top).
 
-A Teva share bought in Tel Aviv and a Teva share bought in New York are the same security, so their dollar prices should match. For every minute in which **the stock actually traded in both places**:
+**Primary endpoints.** Only these get a significance claim; every other series or window checked is exploratory and reported as such.
 
-```
-TASE price in USD = (TASE price in agorot / 100) / USDILS × ratio
-gap (basis points) = (New York price / TASE price in USD − 1) × 10,000
-```
-
-One basis point (bp) is 0.01%.
-
-A small, stable gap is normal (fees, taxes, the usual direction of flows). What matters is the **deviation from the usual gap**: the current gap minus its median over the previous 300 common minutes.
-
-An **episode** is a run of consecutive minutes in which that deviation stays beyond a threshold, on the same side. Three thresholds are tested, 20, 40 and 60 bp, standing for different round-trip trading costs. Only episodes lasting **at least 3 minutes** count, since shorter ones leave no time to trade both legs.
-
-### Pairs
-
-| New York | Tel Aviv | Ratio |
+| Series | Window | Statistic |
 |---|---|---|
-| TEVA | TEVA.TA | 1 : 1 (ordinary shares on both exchanges since 14 Sep 2026) |
-| NICE | NICE.TA | 1 : 1 (to re-check against the latest 20-F) |
-| ESLT | ESLT.TA | 1 : 1 (to be verified) |
-| ICL | ICL.TA | 1 : 1 (to be verified) |
+| USD/ILS | 15 min after 20:00 UTC | cumulative log return |
+| TA-35 | first 5 min after Tel Aviv reopens | opening-gap return |
+| ADR basket (TEVA, ESLT, NICE, ICL, CHKP), after-hours | 15 min after 20:00 UTC | average cumulative log return |
+| Polymarket "largest party" market | from 20:00 UTC | time of first sustained move (see below) |
 
-Check Point (CHKP) is not listed in Tel Aviv, so it is left out of this part.
+**Abnormal move.** For a window of length *h* minutes starting at the event time $t_0$:
 
-### Common trading window
+```math
+r_h(t_0) \;=\; \ln \frac{P(t_0 + h)}{P(t_0)}
+```
 
-The two exchanges are open at the same time for only a short period each day:
-- about **1 hour** (13:30–14:30 UTC) until 23 Oct;
-- about **2 hours** (13:30–15:30 UTC) since Israel moved to winter time on 25 Oct;
-- about 1 hour again from 1 Nov, when the US moves to winter time.
+The null: compute the same statistic, same clock time, same *h*, on every other trading day in the 1-minute history (28 Sep onward, election day excluded): the control sample, of size *N* (about 20 days). Rank $r_h(t_0)$ for 27 Oct inside that sample and report the empirical two-sided p-value $p = \text{rank} / (N + 1)$. With *N* ≈ 20, that is the honest resolution available (coarse, multiples of about 5%); no normal-distribution p-value is claimed on a sample this small.
 
-On Fridays the Tel Aviv session ends before New York opens, so there is no common window.
+**Who moved first.** For each primary series, find the first minute $t \ge$ 20:00 UTC where the move since $t_0$ is large relative to that series' own recent noise, and stays large:
 
-Tracking started on 5 Oct 2026 and runs **every weekday at 21:30 UTC**, after the US close, **beyond 31 Oct**.
+```math
+T_s \;=\; \min\left\{ t \ge t_0 \;:\; \frac{\left|r(t_0, t)\right|}{\sigma \sqrt{t - t_0}} > 2 \ \text{for 2 consecutive minutes} \right\}
+```
 
-### Limitations
+where σ is the standard deviation of 1-minute log returns over the 60 minutes ending just before 20:00 UTC. One minute above the threshold is noise, not a signal. Rank the $T_s$ across series and report pairwise gaps in minutes. Limitation: Polymarket trades continuously while Yahoo bars are minute-binned, so a lead or lag of a minute or two can be a reporting artifact, not a real one.
 
-- Gaps are computed from the **last traded price** of each minute, not from bid and ask quotes. Some one-minute gaps are just trades bouncing between the bid and the ask, so the counts are an **upper bound**.
-- The exchange rate is Yahoo's USD/ILS quote, which is not necessarily a tradable rate.
-- Several ratios still need to be confirmed (see the pairs table).
-- Yahoo Finance data is unofficial and can have holes.
+**Implied volatility, before and after** (`compute_iv.py`). From the hourly option-chain snapshots, on the near-the-money contract (strike closest to spot) at the nearest expiry at least 7 days after 27 Oct: invert Black-Scholes on the bid/ask mid, call and put averaged, with a constant 4% US risk-free rate and no dividend yield. No Tel Aviv option data is collected, so this is a US-market IV on the ADR, not a TASE one (flagged, not corrected). Track IV at every hourly snapshot from 25 Oct 00:00 to 29 Oct 00:00 UTC. Report the event jump $IV(\text{20:15}) - IV(\text{19:50})$ and the one-day move $IV(+24\text{h}) - IV(-24\text{h})$, each ranked against the hour-to-hour IV changes of the three preceding weeks, as for the abnormal move above.
+
+**Comparison with 2019 and 2020.** Daily bars only (`collect_history.py`), so day 0 = first trading session after each election:
+
+```math
+\mathrm{CAR}[0, k] \;=\; \sum_{d=0}^{k} r_d \quad (k = 1, 3), \qquad \text{effect size} \;=\; \frac{\mathrm{CAR}[0, k]}{\sigma_{30}}
+```
+
+where $r_d$ is the daily log return and $\sigma_{30}$ the realized volatility over the 30 sessions before day 0; reported for TA-35 and USD/ILS. With only two past elections as reference, this is **descriptive, not a statistical test**, and no p-value is attached.
+
+**Caveats that apply to the method, not just to the data:** the control-day sample mixes pre-campaign and campaign-close days, which are not a clean null; a handful of series (bonds, GVZ/OVX, individual ADRs beyond the basket) will be looked at but are exploratory by the rule above, however suggestive they turn out to be.
 
 ---
 
 ## Questions this study asks
 
+As published before the exit polls; a fourth question, on the Tel Aviv / New York gap, moved to [TA–NY Parity Monitor](https://github.com/RaphaelKha/TA-NY-parity-monitor).
+
 1. How did the shekel, the TASE, Israeli stocks in New York and Israeli government bonds react around 20:00 UTC on 27 Oct?
 2. Who priced the result in first: Polymarket, the shekel, or Israeli stocks in New York?
 3. How did the implied volatility of options on Israeli stocks change before and after the vote?
-4. Does the Tel Aviv / New York price gap widen around the election, and does it ever stay wide enough, for long enough, to cover trading costs?
-5. How does this reaction compare with previous Knesset elections?
+4. How does this reaction compare with previous Knesset elections?
 
 ---
 
 ## What will be published, and when
 
-- **Now:** the method and the code (this repository).
-- **Later, once collection is over:** the collected data and the analysis that answers the questions above.
+- **Now:** the questions, the method and the code (this repository).
+- **Once collection is over and the Polymarket backfill is done:** the collected data and the analysis that answers the questions above.
 
 The data (`data/`) and logs (`logs/`) are not in the repository for now. They stay on the collection server.
 
@@ -116,15 +120,14 @@ The data (`data/`) and logs (`logs/`) are not in the repository for now. They st
 
 | File | Purpose |
 |---|---|
-| `config.yaml` | tickers, Polymarket events, Wikipedia pages, price-gap settings |
+| `config.yaml` | tickers, Polymarket events, Wikipedia pages |
 | `collect_intraday.py` | 1-minute bars (Yahoo keeps about 7 days) |
 | `collect_options.py` | hourly option-chain snapshots |
-| `collect_polymarket.py` | Polymarket price histories (public API, no key) |
+| `collect_polymarket.py` | Polymarket price histories (public API, no key); `--recover` for the backfill |
 | `collect_polls.py` | copies of the Wikipedia polling and election pages |
 | `collect_snapshots.py` | longer histories (5-minute, hourly, daily) |
 | `collect_history.py` | daily prices around past elections |
-| `parity_track.py` | daily tracking of the Tel Aviv / New York price gap |
-| `parity_check.py` | first, one-off version of the gap analysis |
+| `compute_iv.py` | Black-Scholes implied volatility from the option-chain snapshots |
 | `status.py` | health check: latest data point, missing days, latest runs |
 | `common.py` | shared helpers (config, logging, downloads with retries, duplicate-free merges) |
 
@@ -138,9 +141,9 @@ Tested with Python 3.12.
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-.venv/bin/python status.py                    # collection status
-.venv/bin/python parity_track.py              # Tel Aviv / New York gap (fetches the last 5 days)
-.venv/bin/python parity_track.py --no-fetch   # recompute from data already on disk
+.venv/bin/python status.py                     # collection status
+.venv/bin/python compute_iv.py                 # implied volatility from the option snapshots
+.venv/bin/python collect_polymarket.py --recover   # Polymarket backfill (no-op once done)
 ```
 
-Scheduled jobs run with `cron` on a Linux server set to UTC. With `--cron`, the collectors do nothing after the `collect_until` date in `config.yaml`.
+Scheduled jobs run with `cron` on a Linux server set to UTC. With `--cron`, the collectors do nothing after the `collect_until` date in `config.yaml`; `--recover` is not limited by that date.
